@@ -141,3 +141,63 @@ FROM samples
 JOIN lab_results ON samples.sample_id = lab_results.sample_id
 WHERE lab_results.result = 'Positive'
 GROUP BY technician;
+
+-- =============================================
+-- SECTION 4: WINDOW FUNCTIONS & CTEs
+-- =============================================
+
+-- Q11: Rank patients by age (oldest = rank 1)
+SELECT full_name, age,
+       RANK() OVER (ORDER BY age DESC) AS rank_col
+FROM patients;
+
+-- Q12: Row number partitioned by organism
+SELECT organism, result,
+       ROW_NUMBER() OVER (PARTITION BY organism ORDER BY result_id) AS row_num
+FROM lab_results;
+
+-- Q13: Each patient with average age of their state alongside
+SELECT full_name, state, age,
+       AVG(age) OVER (PARTITION BY state) AS avg_age_in_state
+FROM patients;
+
+-- Q14: Running total of samples collected ordered by sample_id
+SELECT technician, sample_type,
+       COUNT(*) OVER (ORDER BY sample_id) AS running_total
+FROM samples;
+
+-- Q15: CTE - Get positive results then filter for Resistant
+WITH positive_results AS (
+    SELECT result, sensitivity, organism
+    FROM lab_results
+    WHERE result = 'Positive'
+)
+SELECT *
+FROM positive_results
+WHERE sensitivity = 'Resistant';
+
+-- Q16: CTE - Total samples per technician, show only those above 2
+WITH total_samples AS (
+    SELECT technician, COUNT(*) AS total_samples
+    FROM samples
+    GROUP BY technician
+)
+SELECT *
+FROM total_samples
+WHERE total_samples > 2;
+
+-- Q17: Multiple CTEs - Patients older than 35 and their sample types
+WITH patient_older AS (
+    SELECT patient_id, full_name, age
+    FROM patients
+    WHERE age > 35
+),
+patient_older2 AS (
+    SELECT patient_id, sample_type
+    FROM samples
+)
+SELECT *
+FROM patient_older
+JOIN patient_older2
+    ON patient_older.patient_id = patient_older2.patient_id;
+
